@@ -12,10 +12,20 @@ const CSVtoJSON = fileName => {
   rows.map(row => {
     const cols = splitRowInColumns(row)
     const repeatedIndex = result.findIndex(obj => obj.eid === cols[eidIndex])
+    const rowData = getRowData(cols, colNames)
 
-    // if (repeatedIndex >= 0) return console.log(row)
+    if (repeatedIndex < 0) return result.push(rowData)
 
-    result.push(getRowData(cols, colNames))
+    const repeatedEntry = result[repeatedIndex]
+    
+    Object.keys(repeatedEntry).map(key => {
+      if (key === 'classes')
+        return repeatedEntry.classes = repeatedEntry.classes.concat(rowData.classes)
+      if (key === 'addresses')
+        return repeatedEntry.addresses = repeatedEntry.addresses.concat(rowData.addresses)
+      if (typeof repeatedEntry[key] === 'boolean')
+        return repeatedEntry[key] = repeatedEntry[key] || rowData[key]
+    })
   })
 
   return result
@@ -35,8 +45,7 @@ const getRowData = (row, colNames) => {
       ? result.classes = result.classes.concat(getClasses(col))
       : result.classes = getClasses(col)
 
-    if (hasBooleanValue(colNames[ind]) && !result[colNames[ind]])
-      return result[colNames[ind]] = !!col
+    if (hasBooleanValue(colNames[ind])) return result[colNames[ind]] = getBooleanValue(col)
 
     return result[colNames[ind]] = col
   })
@@ -49,7 +58,7 @@ const isClass = name => name === 'class'
 const hasBooleanValue = name => name === 'invisible' || name === 'see_all'
 
 const getAddresses = (col, colName) => {
-  const names = colName.split(/, | /)
+  const names = colName.split(/, | /).map(str => trimString(str))
   const type = names.shift()
   const tags = names
   const addresses = type === 'email' ? getEmails(col) : getPhone(col)
@@ -77,7 +86,13 @@ const getPhone = str => {
   return phoneArray
 }
 
-const getMultipleValues = str => str.split(/ |\//).filter(val => trimString(val))
+const getBooleanValue = str => {
+  if (str === 'yes') return true
+  if (str === 'no') return false
+  return !!parseInt(str)
+}
+
+const getMultipleValues = str => str.split('/').filter(val => trimString(val))
 
 const isValidEmail = email => emailRegex.test(email.toLowerCase())
 
@@ -85,7 +100,10 @@ const getClasses = str => str.split(/\/|,/).map(s => trimString(s))
 
 const trimString = str => str.trim().replace(/^"+|"+$/, '')
 
-CSVtoJSON('input.csv')
+const aaa = CSVtoJSON('input.csv')
+console.log(aaa)
+console.log(aaa[0].addresses)
+
 
 module.exports = {
   getAddresses,
