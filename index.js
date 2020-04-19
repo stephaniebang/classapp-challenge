@@ -1,76 +1,89 @@
 const fs = require('fs')
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance()
-const emailRegex = /^([a-z0-9_\.\+-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/
 
-const CSVtoJSON = fileName => {
-  const data = fs.readFileSync(fileName, 'utf8')
-  const rows = data.split('\n')
-  const colNames = splitRowInColumns(rows.shift())
-  const eidIndex = colNames.indexOf('eid')
-  const result = []
-  
+const ID_COL = 'eid'
+const ROW_SPLIT_REGEX = /(?!, ),/
+const ADDRESS_COL_SPLIT_REGEX = /, | /
+const VALUE_SPLIT_REGEX = /\/|, /
+const EMAIL_REGEX = /^([a-z0-9_\.\+-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/
+
+const csvToJson = fileName => {
+  const rows = readCSVToArray(fileName)
+  const data = getStudentsFromArray(rows)
+
+  fs.writeFile('output.json', JSON.stringify(data, null, 2), err => {
+    if (err) throw err
+  })
+}
+
+const readCSVToArray = fileName => fs.readFileSync(fileName, 'utf8').split('\n')
+
+const getStudentsFromArray = rows => {
+  const colNames = splitString(rows.shift(), ROW_SPLIT_REGEX)
+  const students = []
+
   rows.map(row => {
-    const cols = splitRowInColumns(row)
-    const repeatedIndex = result.findIndex(obj => obj.eid === cols[eidIndex])
-    const rowData = getRowData(cols, colNames)
+    const cols = splitString(row, ROW_SPLIT_REGEX, true)
+    const student = getStudentData(cols, colNames)
+    const dupStudentIndex = students.findIndex(s => s[ID_COL] === student[ID_COL])
 
-    if (repeatedIndex < 0) return result.push(rowData)
+    if (dupStudentIndex < 0) return students.push(student)
 
-    const repeatedEntry = result[repeatedIndex]
+    const dupStudent = students[dupStudentIndex]
     
-    Object.keys(repeatedEntry).map(key => {
+    Object.keys(dupStudent).map(key => {
       if (key === 'classes')
-        return repeatedEntry.classes = repeatedEntry.classes.concat(rowData.classes)
+        return dupStudent.classes = insertIntoClasses(dupStudent.classes, student.classes)
       if (key === 'addresses')
-        return repeatedEntry.addresses = repeatedEntry.addresses.concat(rowData.addresses)
-      if (typeof repeatedEntry[key] === 'boolean')
-        return repeatedEntry[key] = repeatedEntry[key] || rowData[key]
+        return dupStudent.addresses = insertIntoAddresses(dupStudent.addresses, student.addresses)
+      if (typeof dupStudent[key] === 'boolean')
+        return dupStudent[key] = dupStudent[key] || student[key]
     })
   })
 
-  return result
+  return students
 }
 
-const splitRowInColumns = row => row.split(/(?!, ),/).map(str => trimString(str))
+const splitString = (str, pattern, noFilter = false) => str
+  .split(pattern)
+  .filter(s => noFilter || s)
+  .map(s => s.trim().replace(/^"+|"+$/, ''))
 
-const getRowData = (row, colNames) => {
-  const result = {}
+const getStudentData = (row, colNames) => {
+  const data = {}
 
   row.map((col, ind) => {
-    if (isAddress(colNames[ind])) return result.addresses
-      ? result.addresses = result.addresses.concat(getAddresses(col, colNames[ind]))
-      : result.addresses = getAddresses(col, colNames[ind])
+    if (isAddressColumn(colNames[ind]))
+      return data.addresses = insertIntoAddresses(data.addresses, getAddresses(col, colNames[ind]))
 
-    if (isClass(colNames[ind])) return result.classes
-      ? result.classes = result.classes.concat(getClasses(col))
-      : result.classes = getClasses(col)
+    if (isClassColumn(colNames[ind]))
+      return data.classes = insertIntoClasses(data.classes, splitString(col, VALUE_SPLIT_REGEX))
 
-    if (hasBooleanValue(colNames[ind])) return result[colNames[ind]] = getBooleanValue(col)
+    if (hasBooleanValue(colNames[ind])) return data[colNames[ind]] = getBooleanValue(col)
 
-    return result[colNames[ind]] = col
+    return data[colNames[ind]] = col
   })
 
-  return result
+  return data
 }
 
-const isAddress = name => name.includes(' ')
-const isClass = name => name === 'class'
-const hasBooleanValue = name => name === 'invisible' || name === 'see_all'
+const isAddressColumn = name => name.includes(' ')
 
 const getAddresses = (col, colName) => {
-  const names = colName.split(/, | /).map(str => trimString(str))
-  const type = names.shift()
-  const tags = names
+  const tags = splitString(colName, ADDRESS_COL_SPLIT_REGEX, true)
+  const type = tags.shift()
   const addresses = type === 'email' ? getEmails(col) : getPhone(col)
 
   return addresses.map(address => ({ type, tags, address }))
 }
 
 const getEmails = str => {
-  const possibleEmails = getMultipleValues(str)
+  const possibleEmails = splitString(str, VALUE_SPLIT_REGEX)
 
   return possibleEmails.filter(email => isValidEmail(email))
 }
+
+const isValidEmail = email => EMAIL_REGEX.test(email.toLowerCase())
 
 const getPhone = str => {
   const phoneArray = []
@@ -78,13 +91,42 @@ const getPhone = str => {
   try {
     const number = phoneUtil.parseAndKeepRawInput(str, 'BR')
 
-    if (phoneUtil.isPossibleNumber(number))
+    if (phoneUtil.isValidNumber(number))
       phoneArray.push(`${number.getCountryCode()}${number.getNationalNumber()}`)
-  }
-  catch { }
+  } catch { }
 
   return phoneArray
 }
+
+const insertIntoAddresses = (addresses, entries) => {
+  if (!addresses) return entries
+
+  entries.map(e => {
+    const repeatedIndex = addresses.findIndex(a => a.address === e.address)
+
+    if (repeatedIndex < 0) return addresses.push(e)
+
+    addresses[repeatedIndex].tags = addresses[repeatedIndex].tags.concat(e.tags)
+  })
+
+  return addresses
+}
+
+const isClassColumn = name => name === 'class'
+
+const insertIntoClasses = (classes, entries) => {
+  if (!classes) return entries
+
+  if (entries.length && typeof classes === 'string') classes = [classes]
+
+  entries.map(e => {
+    if (classes.findIndex(c => c === e) < 0) classes.push(e)
+  })
+
+  return classes.length === 1 ? classes[0] : classes
+}
+
+const hasBooleanValue = name => name === 'invisible' || name === 'see_all'
 
 const getBooleanValue = str => {
   if (str === 'yes') return true
@@ -92,20 +134,10 @@ const getBooleanValue = str => {
   return !!parseInt(str)
 }
 
-const getMultipleValues = str => str.split('/').filter(val => trimString(val))
 
-const isValidEmail = email => emailRegex.test(email.toLowerCase())
-
-const getClasses = str => str.split(/\/|,/).map(s => trimString(s))
-
-const trimString = str => str.trim().replace(/^"+|"+$/, '')
-
-const aaa = CSVtoJSON('input.csv')
-console.log(aaa)
-console.log(aaa[0].addresses)
-
+csvToJson(process.argv[2] || 'input.csv')
 
 module.exports = {
-  getAddresses,
-  CSVtoJSON
+  readCSVToArray,
+  getStudentsFromArray
 }
