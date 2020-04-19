@@ -2,63 +2,92 @@ const fs = require('fs')
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance()
 const emailRegex = /^([a-z0-9_\.\+-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/
 
-const getDataFromCSV = (fileName, callback) => {
-  return fs.readFile(fileName, 'utf8', (err, data) => {
-    if (err) return console.log(err)
-
-    return callback(data)
-  })
-}
-
-const printData = data => {
+const CSVtoJSON = fileName => {
+  const data = fs.readFileSync(fileName, 'utf8')
   const rows = data.split('\n')
-
-  const colNames = getColumnsNames(rows.shift())
-  console.log(colNames)
-
+  const colNames = splitRowInColumns(rows.shift())
   const eidIndex = colNames.indexOf('eid')
-
   const result = []
   
   rows.map(row => {
-    const cols = row.split(',')
+    const cols = splitRowInColumns(row)
     const repeatedIndex = result.findIndex(obj => obj.eid === cols[eidIndex])
 
-    if (repeatedIndex >= 0) return console.log(row)
+    // if (repeatedIndex >= 0) return console.log(row)
 
-    result.push(getRowData(row))
+    result.push(getRowData(cols, colNames))
   })
+
+  return result
 }
 
-const getColumnsNames = row => row.split(/(?!, ),/)
+const splitRowInColumns = row => row.split(/(?!, ),/).map(str => trimString(str))
 
-const getRowData = (row, colNames) => row.map((col, ind) => {
-  if (isAddress(colNames[ind])) return
-})
+const getRowData = (row, colNames) => {
+  const result = {}
 
-const isAddress = colName => colName.contains(' ')
+  row.map((col, ind) => {
+    if (isAddress(colNames[ind])) return result.addresses
+      ? result.addresses = result.addresses.concat(getAddresses(col, colNames[ind]))
+      : result.addresses = getAddresses(col, colNames[ind])
+
+    if (isClass(colNames[ind])) return result.classes
+      ? result.classes = result.classes.concat(getClasses(col))
+      : result.classes = getClasses(col)
+
+    if (hasBooleanValue(colNames[ind]) && !result[colNames[ind]])
+      return result[colNames[ind]] = !!col
+
+    return result[colNames[ind]] = col
+  })
+
+  return result
+}
+
+const isAddress = name => name.includes(' ')
+const isClass = name => name === 'class'
+const hasBooleanValue = name => name === 'invisible' || name === 'see_all'
 
 const getAddresses = (col, colName) => {
   const names = colName.split(/, | /)
   const type = names.shift()
   const tags = names
-  const addresses = getEmails(col)
+  const addresses = type === 'email' ? getEmails(col) : getPhone(col)
 
   return addresses.map(address => ({ type, tags, address }))
 }
 
 const getEmails = str => {
-  const emails = getMultipleValues(str)
+  const possibleEmails = getMultipleValues(str)
 
-  return emails.filter(email => isValidEmail(email))
+  return possibleEmails.filter(email => isValidEmail(email))
 }
 
-const getMultipleValues = str => str.split(/ |\//).filter(val => val)
+const getPhone = str => {
+  const phoneArray = []
+  
+  try {
+    const number = phoneUtil.parseAndKeepRawInput(str, 'BR')
+
+    if (phoneUtil.isPossibleNumber(number))
+      phoneArray.push(`${number.getCountryCode()}${number.getNationalNumber()}`)
+  }
+  catch { }
+
+  return phoneArray
+}
+
+const getMultipleValues = str => str.split(/ |\//).filter(val => trimString(val))
 
 const isValidEmail = email => emailRegex.test(email.toLowerCase())
 
-// getDataFromCSV('input.csv', printData)
+const getClasses = str => str.split(/\/|,/).map(s => trimString(s))
+
+const trimString = str => str.trim().replace(/^"+|"+$/, '')
+
+CSVtoJSON('input.csv')
 
 module.exports = {
-  getAddresses
+  getAddresses,
+  CSVtoJSON
 }
