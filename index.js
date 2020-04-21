@@ -8,15 +8,15 @@ const VALUE_SPLIT_REGEX = /\/|, /
 const EMAIL_REGEX = /^([a-z0-9_\.\+-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/
 
 const csvToJson = fileName => {
-  const rows = readCSVToArray(fileName)
+  const rows = readCsvToArray(fileName)
   const data = getStudentsFromArray(rows)
 
-  fs.writeFile('output.json', JSON.stringify(data, null, 2), err => {
+  fs.writeFileSync('output.json', JSON.stringify(data, null, 2), err => {
     if (err) throw err
   })
 }
 
-const readCSVToArray = fileName => fs.readFileSync(fileName, 'utf8').split('\n')
+const readCsvToArray = fileName => fs.readFileSync(fileName, 'utf8').split('\n')
 
 const getStudentsFromArray = rows => {
   const colNames = splitString(rows.shift(), ROW_SPLIT_REGEX)
@@ -106,11 +106,15 @@ const insertIntoAddresses = (addresses, entries) => {
 
     if (repeatedIndex < 0) return addresses.push(e)
 
-    addresses[repeatedIndex].tags = addresses[repeatedIndex].tags.concat(e.tags)
+    addresses[repeatedIndex].tags = concat(addresses[repeatedIndex].tags, e.tags)
   })
 
   return addresses
 }
+
+const concat = (arr1, arr2) => arr1.concat(arr2).filter((el, ind, self) =>
+  ind === self.indexOf(el)
+)
 
 const isClassColumn = name => name === 'class'
 
@@ -118,6 +122,7 @@ const insertIntoClasses = (classes, entries) => {
   if (!classes) return entries
 
   if (entries.length && typeof classes === 'string') classes = [classes]
+  if (typeof entries === 'string') entries = [entries]
 
   entries.map(e => {
     if (classes.findIndex(c => c === e) < 0) classes.push(e)
@@ -137,7 +142,4 @@ const getBooleanValue = str => {
 
 csvToJson(process.argv[2] || 'input.csv')
 
-module.exports = {
-  readCSVToArray,
-  getStudentsFromArray
-}
+module.exports = { csvToJson }
