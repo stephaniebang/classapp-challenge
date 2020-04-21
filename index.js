@@ -67,6 +67,7 @@ const getStudentData = (row, colNames) => {
   return data
 }
 
+// address related functions
 const isAddressColumn = name => name.includes(' ')
 
 const getAddresses = (col, colName) => {
@@ -113,6 +114,7 @@ const concat = (arr1, arr2) => arr1.concat(arr2).filter((el, ind, self) =>
   ind === self.indexOf(el)
 )
 
+// class related functions
 const isClassColumn = name => name === 'class'
 
 const insertClass = (classes, entries) => {
@@ -128,6 +130,7 @@ const insertClass = (classes, entries) => {
   return classes.length === 1 ? classes[0] : classes
 }
 
+// boolean value related functions
 const hasBooleanValue = name => name === 'invisible' || name === 'see_all'
 
 const getBooleanValue = str => {
@@ -136,7 +139,8 @@ const getBooleanValue = str => {
   return !!parseInt(str)
 }
 
-// function call
+// main function call. If a specific file is not given through the command line,
+// read 'input.csv' file
 csvToJson(process.argv[2] || 'input.csv')
 
 // export for testing
