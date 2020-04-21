@@ -33,9 +33,9 @@ const getStudentsFromArray = rows => {
     
     Object.keys(dupStudent).map(key => {
       if (key === 'classes')
-        return dupStudent.classes = insertIntoClasses(dupStudent.classes, student.classes)
+        return dupStudent.classes = insertClass(dupStudent.classes, student.classes)
       if (key === 'addresses')
-        return dupStudent.addresses = insertIntoAddresses(dupStudent.addresses, student.addresses)
+        return dupStudent.addresses = insertAddress(dupStudent.addresses, student.addresses)
       if (typeof dupStudent[key] === 'boolean')
         return dupStudent[key] = dupStudent[key] || student[key]
     })
@@ -54,10 +54,10 @@ const getStudentData = (row, colNames) => {
 
   row.map((col, ind) => {
     if (isAddressColumn(colNames[ind]))
-      return data.addresses = insertIntoAddresses(data.addresses, getAddresses(col, colNames[ind]))
+      return data.addresses = insertAddress(data.addresses, getAddresses(col, colNames[ind]))
 
     if (isClassColumn(colNames[ind]))
-      return data.classes = insertIntoClasses(data.classes, splitString(col, VALUE_SPLIT_REGEX))
+      return data.classes = insertClass(data.classes, splitString(col, VALUE_SPLIT_REGEX))
 
     if (hasBooleanValue(colNames[ind])) return data[colNames[ind]] = getBooleanValue(col)
 
@@ -77,11 +77,8 @@ const getAddresses = (col, colName) => {
   return addresses.map(address => ({ type, tags, address }))
 }
 
-const getEmails = str => {
-  const possibleEmails = splitString(str, VALUE_SPLIT_REGEX)
-
-  return possibleEmails.filter(email => isValidEmail(email))
-}
+const getEmails = str =>
+  splitString(str, VALUE_SPLIT_REGEX).filter(email => isValidEmail(email))
 
 const isValidEmail = email => EMAIL_REGEX.test(email.toLowerCase())
 
@@ -98,7 +95,7 @@ const getPhone = str => {
   return phoneArray
 }
 
-const insertIntoAddresses = (addresses, entries) => {
+const insertAddress = (addresses, entries) => {
   if (!addresses) return entries
 
   entries.map(e => {
@@ -118,7 +115,7 @@ const concat = (arr1, arr2) => arr1.concat(arr2).filter((el, ind, self) =>
 
 const isClassColumn = name => name === 'class'
 
-const insertIntoClasses = (classes, entries) => {
+const insertClass = (classes, entries) => {
   if (!classes) return entries
 
   if (entries.length && typeof classes === 'string') classes = [classes]
@@ -139,7 +136,8 @@ const getBooleanValue = str => {
   return !!parseInt(str)
 }
 
-
+// function call
 csvToJson(process.argv[2] || 'input.csv')
 
+// export for testing
 module.exports = { csvToJson }
