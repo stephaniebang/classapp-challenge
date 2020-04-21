@@ -1,0 +1,34 @@
+[{
+  "fullname": "Victor Doe 3",
+  "eid": "1236",
+  "classes": [
+    "Sala 6",
+    "Sala 7",
+    "Sala 3"
+  ],
+  "addresses": [{
+    "type": "email",
+    "tags": [
+      "Responsável",
+      "Pai"
+    ],
+    "address": "victordoepai1@hotmail.com"
+  }, {
+    "type": "email",
+    "tags": [
+      "Mãe",
+      "Aluno",
+      "Responsável",
+      "Pai"
+    ],
+    "address": "victordoe3@gmail.com"
+  }, {
+    "type": "phone",
+    "tags": [
+      "Aluno"
+    ],
+    "address": "551974430033"
+  }],
+  "invisible": true,
+  "see_all": false
+}]

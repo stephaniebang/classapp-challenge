@@ -1,0 +1,35 @@
+[{
+  "fullname": "Mary Doe 2",
+  "eid": "1235",
+  "classes": "Sala 1",
+  "addresses": [{
+    "type": "email",
+    "tags": [
+      "Responsável",
+      "Pai"
+    ],
+    "address": "marydoe1@gmail.com"
+  },{
+    "type": "phone",
+    "tags": [
+      "Mãe",
+      "Responsável",
+      "Financeiro"
+    ],
+    "address": "5511983342281"
+  },{
+    "type": "email",
+    "tags": [
+      "Irmã"
+    ],
+    "address": "teste@mail.com"
+  },{
+    "type": "phone",
+    "tags": [
+      "Irmã"
+    ],
+    "address": "5511998887777"
+  }],
+  "invisible": true,
+  "see_all": false
+}]

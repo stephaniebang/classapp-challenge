@@ -1,0 +1,3 @@
+class,fullname,eid,class,email Aluno,phone Pai,"email Responsável, Pai","phone Responsável, Mãe",email Mãe,phone Aluno,invisible,see_all
+Sala 3,John Doe 1,1234,Sala 1 / Sala 2,johndoealuno1@gmail.com,11 22221,johndoepai1@gmail.com :),(11) 38839332,johndoemae1@gmail.com,hahaha,1,
+"Sala 5, Sala 6",John Doe 1,1234,Sala 4,,19 985504400,johndoepai2@gmail.com/johndoepai3@gmail.com,(11) 38839333,11 983340440,,,yes
